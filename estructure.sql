@@ -9,15 +9,15 @@ DROP TABLE aplicacion;
 
 
 CREATE TABLE DNS(
-    nombre varchar(12) primary key,
+    nombre varchar(40) primary key,
     expirar_date DATE,
     protegido number(1,0)
 );
 
 CREATE TABLE registro (
 
-    nombre varchar(12) not null,
-    valor varchar(12) not null,
+    nombre varchar(40) not null,
+    valor varchar(40) not null,
     ttl number default 3600 not null,
     dns varchar(12),
     tipo varchar(12),
