@@ -11,7 +11,7 @@ DROP TABLE aplicacion;
 CREATE TABLE DNS(
     nombre varchar(12) primary key,
     expirar_date DATE,
-    protegido boolean
+    protegido number(1,0)
 );
 
 CREATE TABLE registro (
