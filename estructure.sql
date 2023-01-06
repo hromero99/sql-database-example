@@ -2,10 +2,11 @@ DROP TABLE registro;
 DROP TABLE DNS;
 drop table contenedorServidor;
 drop table aplicacionServidor;
+DROP TABLE log;
+DROP TABLE log_servidor;
 DROP TABLE servidor;
 DROP TABLE aplicacion;
 DROP TABLE contenedor;
-DROP TABLE aplicacion;
 
 
 CREATE TABLE DNS(
@@ -29,6 +30,20 @@ CREATE TABLE servidor (
 
     nombre varchar(12) primary key,
     ipv4 varchar(12) not null
+);
+
+CREATE TABLE LOG (
+    usuario varchar(20) not null,
+    accion varchar(14) not null,
+    destino varchar(14) not null,
+    argumentos varchar(14),
+    estampatiempo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(usuario,accion,estampatiempo)
+);
+
+CREATE TABLE log_servidor(
+    servidor varchar(12) not null,
+    CONSTRAINT servidorLog FOREIGN KEY (servidor) REFERENCES servidor(nombre)
 );
 
 CREATE TABLE contenedor (
