@@ -112,30 +112,6 @@ CREATE OR REPLACE TRIGGER contrunserver BEFORE INSERT OR UPDATE ON contenedorSer
     for each row
     DECLARE
          totalContainerRunning NUMBER;
-         servidorsize CHARACTER;
-         limitExceded BOOLEAN;
-    BEGIN      
-        select COUNT (*) into totalContainerRunning from contenedor where estado='running';
-        select servidorsize into servidorsize from servidor where nombre=:old.servidor_nombre;
-        case servidorsize
-            when 's' THEN
-              limitExceded := totalContainerRunning < 5;
-            when 'm' THEN
-              limitExceded := totalContainerRunning < 5;
-            when  'l' THEN
-              limitExceded := totalContainerRunning < 5;
-            when  'xl' THEN
-              limitExceded := totalContainerRunning < 5;
-            else
-                limitExceded := true;
-        end case;
-     END;
-/
-CREATE OR REPLACE TRIGGER contrunserver BEFORE INSERT OR UPDATE ON contenedorServidor
-    referencing OLD as old
-    for each row
-    DECLARE
-         totalContainerRunning NUMBER;
          serversize VARCHAR(2);
          limitExeced BOOLEAN;
     BEGIN      
@@ -161,6 +137,9 @@ CREATE OR REPLACE TRIGGER contrunserver BEFORE INSERT OR UPDATE ON contenedorSer
             else
                 limitExeced := false;
         end case;
+        if limitExeced then
+            RAISE_APPLICATION_ERROR(-9000,'El servidor no puede ejecutar más contenedores');
+        end if;
      END;
 /
        
