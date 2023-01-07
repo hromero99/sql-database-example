@@ -153,4 +153,19 @@ CREATE OR REPLACE TRIGGER contrunserver BEFORE INSERT OR UPDATE ON contenedorSer
         end if;
      END;
 /
-       
+CREATE or replace TRIGGER domainRegister BEFORE UPDATE OR INSERT on registro
+    for each row
+   declare
+    type array_t is varray(8) of varchar2(12);
+    array array_t := array_t ('A','AAAA','CAA','CNAME','MX','NS','SRV','TXT');
+     correct boolean :=false;
+    begin
+        for i in 1..array.count loop
+          if :new.tipo = array(i) then
+            correct := true;
+        end if;
+       end loop;
+        if correct = false then
+            RAISE_APPLICATION_ERROR(-9001,'El registro tiene un tipo invalido');
+        end if;
+END;
