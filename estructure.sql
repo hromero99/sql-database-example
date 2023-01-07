@@ -29,7 +29,9 @@ CREATE TABLE registro (
 CREATE TABLE servidor(
 
     nombre varchar(12) primary key,
-    ipv4 varchar(12) not null
+    ipv4 varchar(12) not null,
+    size varchar(12) not null,
+    constraint tiposervidor check (size in ('s','m','l','xl'))
 );
 
 CREATE TABLE LOG (
