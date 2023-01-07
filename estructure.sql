@@ -2,9 +2,9 @@ DROP TABLE registro;
 DROP TABLE DNS;
 DROP TABLE log;
 DROP TABLE log_servidor;
+DROP TABLE contenedorServidor;
 DROP TABLE contenedor;
 DROP TABLE servidor;
-DROP TABLE contenedorServidor;
 DROP TABLE aplicacion;
 
 
@@ -27,11 +27,10 @@ CREATE TABLE registro (
 );
 
 CREATE TABLE servidor(
-
     nombre varchar(12) primary key,
     ipv4 varchar(12) not null,
-    size varchar(12) not null,
-    constraint tiposervidor check (size in ('s','m','l','xl'))
+    servidorsize varchar(12) not null,
+    constraint tiposervidor check (servidorsize in ('s','m','l','xl'))
 );
 
 CREATE TABLE LOG (
@@ -68,18 +67,15 @@ CREATE TABLE contenedor (
     constraint estadotype check (estado in ('running','stopped','restarting','aborted'))
 );
 
-
 CREATE TABLE contenedorServidor(
     servidor_nombre varchar(12),
     contenedor_id varchar(64),
-    constraint servidor foreign KEY (servidor_nombre) references servidor(nombre),
-    constraint contenedor foreign key (contenedor_id) references contenedor(id)
-    
+    constraint contenedorfk foreign key (contenedor_id) references contenedor(id),
+    constraint servidorfk FOREIGN KEY (servidor_nombre) references servidor(nombre)
 );
 
 
 -- Trigger para generar entradas en la auditoria
-DROP TRIGGER cambio_estado_en_contenedor;
 CREATE OR REPLACE TRIGGER cambio_estado_en_contenedor BEFORE UPDATE ON contenedor
     REFERENCING OLD AS old
     for each row
@@ -92,8 +88,39 @@ CREATE OR REPLACE TRIGGER cambio_estado_en_contenedor BEFORE UPDATE ON contenedo
     END IF;
     END;
 /
+
+CREATE OR REPLACE TRIGGER contenedor_servidor_asignacion BEFORE INSERT OR UPDATE ON contenedorServidor
+    referencing old as old
+    declare character exitsContainer := "";
+    begin
+        select id into exitsContainer from contenedor where id=:old.contenedor_id;
+        if exitsContainer != "" THEN
+            INSERT INTO contenedorServidor VALUES(:old.servidor_nombre,:old.contenedor_id);
+        ELSE 
+            RAISE_APPLICATION_ERROR('El contenedor que estas intentando asociar al servidor no existe');
+        END IF;
+    end;
+
+-- Trigger para comprobar que no se excede el numero de conenedores
+
+CREATE OR REPLACE TRIGGER contenedores_running_en_servidor_tamano BEFORE UPDATE OR INSERT ON contenedor
+    referencing old as old
+    for each row
+    DECLARE NUMBER totalContainerRunning;
+    begin
+        select COUNT (*) into totalContainerRunning from contenedor where estado='running';
+end;
+/
+
 INSERT INTO contenedor(id,nombre,estado) values('123','prueba1','running');
 update contenedor set estado='stopped' where id='123';
 
 select * from log;
 delete from  log where usuario != -1;
+
+
+insert into servidor values ('111','192.168.1.1','xl');
+INSERT INTO aplicacion(nombre,descripcion,tipo) values('ExpenseseApp','Aplicación para la gestión de gastos', 'ERP');
+insert into contenedor values('1','1','running','ExpenseseApp');
+insert into contenedorServidor values('111','1');
+select count(*) from contenedor,contenedorservidor where estado='running' and contenedorservidor.contenedor_id=contenedor.id;
