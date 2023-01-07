@@ -1,3 +1,6 @@
+DROP TRIGGER CONTRUNSERVER;
+DROP TRIGGER CONTENEDOR_SERVIDOR_ASIGNACION;
+DROP TRIGGER CAMBIO_ESTADO_EN_CONTENEDOR;
 DROP TABLE registro;
 DROP TABLE DNS;
 DROP TABLE log;
@@ -6,7 +9,6 @@ DROP TABLE contenedorServidor;
 DROP TABLE contenedor;
 DROP TABLE servidor;
 DROP TABLE aplicacion;
-
 
 
 CREATE TABLE DNS(
@@ -89,38 +91,76 @@ CREATE OR REPLACE TRIGGER cambio_estado_en_contenedor BEFORE UPDATE ON contenedo
     END;
 /
 
+
 CREATE OR REPLACE TRIGGER contenedor_servidor_asignacion BEFORE INSERT OR UPDATE ON contenedorServidor
     referencing old as old
-    declare character exitsContainer := "";
+    for each row
+    declare
+         EXITSCONTAINER character;
     begin
         select id into exitsContainer from contenedor where id=:old.contenedor_id;
-        if exitsContainer != "" THEN
+        if exitsContainer != '' THEN
             INSERT INTO contenedorServidor VALUES(:old.servidor_nombre,:old.contenedor_id);
         ELSE 
-            RAISE_APPLICATION_ERROR('El contenedor que estas intentando asociar al servidor no existe');
+            RAISE_APPLICATION_ERROR(12,'El contenedor que estas intentando asociar al servidor no existe');
         END IF;
     end;
 
--- Trigger para comprobar que no se excede el numero de conenedores
-
-CREATE OR REPLACE TRIGGER contenedores_running_en_servidor_tamano BEFORE UPDATE OR INSERT ON contenedor
-    referencing old as old
-    for each row
-    DECLARE NUMBER totalContainerRunning;
-    begin
-        select COUNT (*) into totalContainerRunning from contenedor where estado='running';
-end;
 /
-
-INSERT INTO contenedor(id,nombre,estado) values('123','prueba1','running');
-update contenedor set estado='stopped' where id='123';
-
-select * from log;
-delete from  log where usuario != -1;
-
-
-insert into servidor values ('111','192.168.1.1','xl');
-INSERT INTO aplicacion(nombre,descripcion,tipo) values('ExpenseseApp','Aplicación para la gestión de gastos', 'ERP');
-insert into contenedor values('1','1','running','ExpenseseApp');
-insert into contenedorServidor values('111','1');
-select count(*) from contenedor,contenedorservidor where estado='running' and contenedorservidor.contenedor_id=contenedor.id;
+CREATE OR REPLACE TRIGGER contrunserver BEFORE INSERT OR UPDATE ON contenedorServidor
+    referencing OLD as old
+    for each row
+    DECLARE
+         totalContainerRunning NUMBER;
+         servidorsize CHARACTER;
+         limitExceded BOOLEAN;
+    BEGIN      
+        select COUNT (*) into totalContainerRunning from contenedor where estado='running';
+        select servidorsize into servidorsize from servidor where nombre=:old.servidor_nombre;
+        case servidorsize
+            when 's' THEN
+              limitExceded := totalContainerRunning < 5;
+            when 'm' THEN
+              limitExceded := totalContainerRunning < 5;
+            when  'l' THEN
+              limitExceded := totalContainerRunning < 5;
+            when  'xl' THEN
+              limitExceded := totalContainerRunning < 5;
+            else
+                limitExceded := true;
+        end case;
+     END;
+/
+CREATE OR REPLACE TRIGGER contrunserver BEFORE INSERT OR UPDATE ON contenedorServidor
+    referencing OLD as old
+    for each row
+    DECLARE
+         totalContainerRunning NUMBER;
+         serversize VARCHAR(2);
+         limitExeced BOOLEAN;
+    BEGIN      
+        select COUNT (*) into totalContainerRunning from contenedor where estado='running';
+        select servidorsize into serversize from servidor where nombre=:old.servidor_nombre;
+        case serversize
+            when 's' THEN
+                if (totalContainerRunning < 5) then
+                    limitExeced := true;
+                end if;
+            when 'm' THEN
+               if (totalContainerRunning < 10) then
+                    limitExeced := true;
+                end if;
+            when 'l' THEN
+               if (totalContainerRunning < 15) then
+                    limitExeced := true;
+                end if;
+            when 'xl' THEN
+              if (totalContainerRunning < 50) then
+                    limitExeced := true;
+                end if;
+            else
+                limitExeced := false;
+        end case;
+     END;
+/
+       
