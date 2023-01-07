@@ -78,16 +78,27 @@ CREATE TABLE contenedorServidor(
 
 
 -- Trigger para generar entradas en la auditoria
-CREATE OR REPLACE TRIGGER cambio_estado_en_contenedor BEFORE UPDATE ON contenedor
+CREATE OR REPLACE TRIGGER cambio_estado_en_contenedor BEFORE INSERT OR DELETE OR UPDATE ON contenedor
     REFERENCING OLD AS old
     for each row
         declare oldState varchar(12);
     begin
-    if (:old.estado != :new.estado)then
-        INSERT INTO LOG(usuario,accion,destino,argumentos) VALUES('1','ContainerCh',:new.id,:new.estado);
-    else
-        INSERT INTO LOG(usuario,accion,destino) VALUES('1','nothing',:new.id);
+    IF UPDATING THEN
+        if (:old.estado != :new.estado)then
+            INSERT INTO LOG(usuario,accion,destino,argumentos) VALUES('1','ContainerCh',:new.id,:new.estado);
+        else
+            INSERT INTO LOG(usuario,accion,destino) VALUES('1','nothing',:new.id);
+        END IF;
     END IF;
+    
+    IF INSERTING THEN
+        INSERT INTO LOG(usuario,accion,destino,argumentos) VALUES('1','AppUp',:new.id,:new.aplicacion);
+    END IF;
+    
+    IF DELETING THEN
+        INSERT INTO LOG(usuario,accion,destino,argumentos) VALUES('1','AppDown',:new.id,:new.aplicacion);
+    END IF;
+    
     END;
 /
 
